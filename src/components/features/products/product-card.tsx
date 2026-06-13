@@ -6,7 +6,6 @@ import { useState } from "react";
 import { ShoppingBag } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import type { Product } from "@/types/product";
 
 type ProductCardProps = {
@@ -31,13 +30,9 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Image container */}
-      <Link
-        href={`/products/${product.slug}`}
-        className="relative block aspect-[3/4] overflow-hidden bg-secondary"
-        tabIndex={-1}
-        aria-hidden
-      >
+      {/* Image container — uses a stretched link (below) for navigation so no
+          anchor is nested inside another anchor. */}
+      <div className="relative aspect-3/4 overflow-hidden bg-secondary">
         {image ? (
           <>
             <Image
@@ -84,21 +79,29 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
           )}
         </div>
 
-        {/* Quick add overlay */}
+        {/* Stretched link — makes the whole image clickable without nesting
+            anchors. Hidden from tab order; the title link below is the focus stop. */}
+        <Link
+          href={`/products/${product.slug}`}
+          className="absolute inset-0 z-10"
+          tabIndex={-1}
+          aria-hidden
+        />
+
+        {/* Quick view overlay — visual affordance only (pointer-events-none),
+            navigation is handled by the stretched link above. */}
         <div
           className={cn(
-            "absolute inset-x-0 bottom-0 p-3 transition-all duration-200",
+            "absolute inset-x-0 bottom-0 z-20 p-3 transition-all duration-200 pointer-events-none",
             hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
           )}
-          aria-hidden={!hovered}
+          aria-hidden
         >
-          <Link href={`/products/${product.slug}`} tabIndex={hovered ? 0 : -1}>
-            <Button variant="default" size="default" className="w-full">
-              Quick View
-            </Button>
-          </Link>
+          <span className="flex h-11 w-full items-center justify-center bg-foreground text-background text-xs font-medium uppercase tracking-[0.15em]">
+            Quick View
+          </span>
         </div>
-      </Link>
+      </div>
 
       {/* Info */}
       <div className="flex flex-col gap-1 pt-3">
