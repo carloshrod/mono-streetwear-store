@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { ShoppingBag } from "lucide-react";
 
 import { cn, formatPrice } from "@/lib/utils";
+import { ProductCardQuickAdd } from "@/components/features/products/product-card-quick-add";
 import type { Product } from "@/types/product";
 
 type ProductCardProps = {
@@ -14,19 +14,12 @@ type ProductCardProps = {
 };
 
 export const ProductCard = ({ product, priority = false }: ProductCardProps) => {
-  const [hovered, setHovered] = useState(false);
-
   const image = product.images[0] ?? null;
   const secondImage = product.images[1] ?? null;
-  const isNew =
-    Date.now() - new Date(product.created_at).getTime() < 30 * 24 * 60 * 60 * 1000;
+  const isNew = product.isNew ?? false;
 
   return (
-    <article
-      className="group relative flex flex-col"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <article className="group relative flex flex-col">
       {/* Image container — uses a stretched link (below) for navigation so no
           anchor is nested inside another anchor. */}
       <div className="relative aspect-3/4 overflow-hidden bg-secondary">
@@ -38,8 +31,8 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
               className={cn(
-                "object-cover transition-all duration-500",
-                secondImage && hovered ? "opacity-0" : "opacity-100"
+                "object-cover transition-opacity duration-500",
+                secondImage && "group-hover:opacity-0"
               )}
               priority={priority}
             />
@@ -49,10 +42,7 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
                 alt={`${product.name} — alternate view`}
                 fill
                 sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
-                className={cn(
-                  "object-cover transition-all duration-500",
-                  hovered ? "opacity-100" : "opacity-0"
-                )}
+                className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
               />
             )}
           </>
@@ -85,18 +75,19 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
           aria-hidden
         />
 
-        {/* Quick view overlay — visual affordance only (pointer-events-none),
-            navigation is handled by the stretched link above. */}
+        {/* Quick-add overlay — sits above the stretched link (z-20) so its
+            buttons receive clicks instead of navigating. Revealed on hover or
+            keyboard focus; always shown on touch devices (no hover). */}
         <div
           className={cn(
-            "absolute inset-x-0 bottom-0 z-20 p-3 transition-all duration-200 pointer-events-none",
-            hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+            "absolute inset-x-0 bottom-0 z-20 p-3 transition-all duration-200",
+            "opacity-0 translate-y-2",
+            "group-hover:opacity-100 group-hover:translate-y-0",
+            "focus-within:opacity-100 focus-within:translate-y-0",
+            "[@media(hover:none)]:opacity-100 [@media(hover:none)]:translate-y-0"
           )}
-          aria-hidden
         >
-          <span className="flex h-11 w-full items-center justify-center bg-foreground text-background text-xs font-medium uppercase tracking-[0.15em]">
-            Quick View
-          </span>
+          <ProductCardQuickAdd product={product} />
         </div>
       </div>
 

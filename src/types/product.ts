@@ -27,4 +27,9 @@ export type Product = {
   updated_at: string;
   category?: Category;
   variants?: ProductVariant[];
+  /**
+   * View-only flag derived in the data layer (not stored in the DB):
+   * true when the product was created within the recent-window.
+   */
+  isNew?: boolean;
 };

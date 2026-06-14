@@ -8,6 +8,9 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useCartStore, selectTotalItems } from "@/store/cart";
+import { useCartUI } from "@/store/cart-ui";
+import { useCartHydrated } from "@/hooks/use-cart-hydrated";
+import { CartDrawer } from "@/components/features/cart/cart-drawer";
 
 const NAV_LINKS = [
   { href: "/products", label: "Shop" },
@@ -18,7 +21,10 @@ const NAV_LINKS = [
 export const Navbar = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const openCart = useCartUI((s) => s.open);
+  const hydrated = useCartHydrated();
   const itemCount = useCartStore(selectTotalItems);
+  const showBadge = hydrated && itemCount > 0;
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
@@ -73,18 +79,19 @@ export const Navbar = () => {
             <User size={18} strokeWidth={1.5} />
           </Link>
 
-          <Link
-            href="/cart"
-            aria-label={`Cart — ${itemCount} item${itemCount !== 1 ? "s" : ""}`}
-            className="relative flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150"
+          <button
+            type="button"
+            onClick={openCart}
+            aria-label={`Open cart — ${itemCount} item${itemCount !== 1 ? "s" : ""}`}
+            className="relative flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
           >
             <ShoppingBag size={18} strokeWidth={1.5} />
-            {itemCount > 0 && (
+            {showBadge && (
               <span className="absolute top-2 right-2 size-4 bg-foreground text-background text-[10px] font-bold flex items-center justify-center leading-none">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
             )}
-          </Link>
+          </button>
 
           {/* Mobile menu toggle */}
           <button
@@ -120,6 +127,8 @@ export const Navbar = () => {
           ))}
         </div>
       )}
+
+      <CartDrawer />
     </header>
   );
 };

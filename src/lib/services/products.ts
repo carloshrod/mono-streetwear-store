@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { PRODUCT_SELECT } from "@/lib/services/product-select";
+import { PRODUCT_SELECT, markIsNew } from "@/lib/services/product-select";
 import type { Product } from "@/types/product";
 
 export type ProductFilters = {
@@ -34,7 +34,7 @@ export const getProducts = async (filters: ProductFilters = {}): Promise<Product
     throw new Error(`Failed to fetch products: ${error.message}`);
   }
 
-  return (data ?? []) as Product[];
+  return ((data ?? []) as Product[]).map(markIsNew);
 };
 
 /**
