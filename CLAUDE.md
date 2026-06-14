@@ -17,7 +17,7 @@ There is no test suite configured yet.
 
 This project is a **streetwear ecommerce** called **MONO**.
 
-The goal is to build a **production-ready application** that can be used as a portfolio project to attract freelance clients.
+The goal is to build a **production-ready application** that looks premium.
 
 This is NOT a demo project. All code should follow real-world best practices.
 

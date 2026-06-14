@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
-import { PRODUCT_SELECT } from "@/lib/services/product-select";
+import { PRODUCT_SELECT, markIsNew } from "@/lib/services/product-select";
 import type { Product } from "@/types/product";
 
 /**
@@ -26,5 +26,24 @@ export const getProductBySlug = cache(
     }
 
     return (data as Product | null) ?? null;
+  }
+);
+
+export const getFeaturedProducts = cache(
+  async (limit = 4): Promise<Product[]> => {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Failed to fetch featured products: ${error.message}`);
+    }
+
+    return ((data ?? []) as Product[]).map(markIsNew);
   }
 );

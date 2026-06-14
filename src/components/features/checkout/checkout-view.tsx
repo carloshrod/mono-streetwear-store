@@ -212,10 +212,6 @@ export const CheckoutView = () => {
           <Button type="submit" className="w-full h-12" disabled={isSubmitting}>
             {isSubmitting ? "Placing order…" : "Place order"}
           </Button>
-
-          <p className="text-xs text-muted-foreground text-center">
-            This is a portfolio demo — no real payment is processed.
-          </p>
         </form>
 
         {/* Order summary */}
