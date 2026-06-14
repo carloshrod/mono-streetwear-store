@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { useCartStore, selectTotalItems } from "@/store/cart";
 import { useCartUI } from "@/store/cart-ui";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
+import { useUser } from "@/hooks/use-user";
+import { useAuthModal } from "@/store/auth-modal";
 import { CartDrawer } from "@/components/features/cart/cart-drawer";
 
 const NAV_LINKS = [
@@ -25,6 +27,8 @@ export const Navbar = () => {
   const hydrated = useCartHydrated();
   const itemCount = useCartStore(selectTotalItems);
   const showBadge = hydrated && itemCount > 0;
+  const { user, loading: userLoading } = useUser();
+  const openAuthModal = useAuthModal((s) => s.open);
 
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
@@ -71,13 +75,27 @@ export const Navbar = () => {
             <Search size={18} strokeWidth={1.5} />
           </button>
 
-          <Link
-            href="/account"
-            aria-label="Account"
-            className="flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150"
-          >
-            <User size={18} strokeWidth={1.5} />
-          </Link>
+          {!userLoading && (
+            user ? (
+              <Link
+                href="/account"
+                aria-label="My account"
+                title={user.email}
+                className="flex items-center justify-center size-11 text-foreground hover:opacity-70 transition-opacity duration-150"
+              >
+                <User size={18} strokeWidth={1.5} />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                aria-label="Sign in"
+                onClick={openAuthModal}
+                className="flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
+              >
+                <User size={18} strokeWidth={1.5} />
+              </button>
+            )
+          )}
 
           <button
             type="button"

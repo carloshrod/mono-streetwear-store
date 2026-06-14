@@ -19,7 +19,8 @@ export const getUser = async () => {
  */
 export const requireAuth = async () => {
   const user = await getUser();
-  if (!user) redirect("/login");
+  // ?signin=1 tells the store layout to auto-open the auth modal
+  if (!user) redirect("/?signin=1");
   return user;
 };
 

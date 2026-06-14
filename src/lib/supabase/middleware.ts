@@ -30,25 +30,13 @@ export const updateSession = async (request: NextRequest) => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users away from protected routes
+  // Redirect unauthenticated users away from admin-only routes
   const { pathname } = request.nextUrl;
-  const isProtected =
-    pathname.startsWith("/checkout") || pathname.startsWith("/admin");
 
-  if (!user && isProtected) {
+  if (!user && pathname.startsWith("/admin")) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
+    loginUrl.pathname = "/";
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Redirect authenticated users away from auth pages
-  const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
-
-  if (user && isAuthRoute) {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/";
-    return NextResponse.redirect(homeUrl);
   }
 
   return supabaseResponse;

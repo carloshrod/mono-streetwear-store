@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
+
+import { CheckoutView } from "@/components/features/checkout/checkout-view";
+
+export const metadata: Metadata = {
+  title: "Checkout — MONO",
+};
+
 const CheckoutPage = () => {
-  return <main>Checkout</main>;
+  return <CheckoutView />;
 };
 
 export default CheckoutPage;
