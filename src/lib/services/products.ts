@@ -1,15 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCT_SELECT } from "@/lib/services/product-select";
 import type { Product } from "@/types/product";
-
-/**
- * Columns selected for product list/detail queries.
- * Joins category and variants so cards can show category labels and stock.
- */
-const PRODUCT_SELECT = `
-  *,
-  category:categories (*),
-  variants:product_variants (*)
-` as const;
 
 export type ProductFilters = {
   categorySlug?: string;

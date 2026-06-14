@@ -5,16 +5,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { ShoppingBag } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 import type { Product } from "@/types/product";
 
 type ProductCardProps = {
   product: Product;
   priority?: boolean;
 };
-
-const formatPrice = (cents: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 
 export const ProductCard = ({ product, priority = false }: ProductCardProps) => {
   const [hovered, setHovered] = useState(false);

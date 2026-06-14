@@ -23,7 +23,6 @@ export const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 bg-background border-b border-border">
       <div className="max-w-360 mx-auto px-6 h-16 flex items-center justify-between gap-8">
-
         {/* Logo */}
         <Link href="/" className="shrink-0" aria-label="MONO — Home">
           <Image
@@ -32,19 +31,24 @@ export const Navbar = () => {
             width={80}
             height={24}
             priority
-            className="h-6 w-auto object-contain dark:invert"
+            style={{ width: "auto" }}
+            className="h-10 w-auto object-contain dark:invert"
+            loading="eager"
           />
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+        <nav
+          className="hidden md:flex items-center gap-8"
+          aria-label="Main navigation"
+        >
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               className={cn(
                 "text-label text-muted-foreground hover:text-foreground transition-colors duration-150",
-                pathname.startsWith(href) && "text-foreground"
+                pathname.startsWith(href) && "text-foreground",
               )}
             >
               {label}
@@ -89,7 +93,11 @@ export const Navbar = () => {
             onClick={() => setMobileOpen((v) => !v)}
             className="md:hidden flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
           >
-            {mobileOpen ? <X size={18} strokeWidth={1.5} /> : <Menu size={18} strokeWidth={1.5} />}
+            {mobileOpen ? (
+              <X size={18} strokeWidth={1.5} />
+            ) : (
+              <Menu size={18} strokeWidth={1.5} />
+            )}
           </button>
         </div>
       </div>
@@ -104,7 +112,7 @@ export const Navbar = () => {
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "text-label text-muted-foreground hover:text-foreground transition-colors",
-                pathname.startsWith(href) && "text-foreground"
+                pathname.startsWith(href) && "text-foreground",
               )}
             >
               {label}
