@@ -35,6 +35,8 @@ create table public.products (
   images       text[]      not null default '{}',          -- Supabase Storage URLs
   status       text        not null default 'draft'
                            check (status in ('active', 'draft', 'archived')),
+  gender       text        not null default 'men'
+                           check (gender in ('men', 'women', 'unisex')),
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );

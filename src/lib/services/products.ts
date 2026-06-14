@@ -1,27 +1,51 @@
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCT_SELECT, markIsNew } from "@/lib/services/product-select";
-import type { Product } from "@/types/product";
+import type { Product, ProductGender } from "@/types/product";
+
+export type ProductSort = "recommended" | "newest" | "price_asc" | "price_desc";
 
 export type ProductFilters = {
   categorySlug?: string;
   search?: string;
+  sort?: ProductSort;
+  gender?: ProductGender;
 };
 
-/**
- * Fetch active products for the storefront, newest first.
- * Throws on error so TanStack Query can surface it to the UI.
- */
 export const getProducts = async (filters: ProductFilters = {}): Promise<Product[]> => {
   const supabase = createClient();
 
   let query = supabase
     .from("products")
     .select(PRODUCT_SELECT)
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .eq("status", "active");
 
+  if (filters.sort === "price_asc") {
+    query = query.order("price", { ascending: true });
+  } else if (filters.sort === "price_desc") {
+    query = query.order("price", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  // Resolve slug → category_id before filtering — PostgREST alias dot-notation is unreliable
   if (filters.categorySlug) {
-    query = query.eq("category.slug", filters.categorySlug);
+    const { data: cat } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("slug", filters.categorySlug)
+      .maybeSingle();
+
+    if (!cat) return [];
+    query = query.eq("category_id", cat.id);
+  }
+
+  // Men/women pages include unisex products; unisex-only filter stays exact
+  if (filters.gender === "men") {
+    query = query.in("gender", ["men", "unisex"]);
+  } else if (filters.gender === "women") {
+    query = query.in("gender", ["women", "unisex"]);
+  } else if (filters.gender) {
+    query = query.eq("gender", filters.gender);
   }
 
   if (filters.search) {

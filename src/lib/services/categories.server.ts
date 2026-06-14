@@ -3,47 +3,74 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Category } from "@/types/product";
 
+export const getCategories = cache(async (): Promise<Category[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .order("name");
+
+  if (error) throw new Error(`Failed to fetch categories: ${error.message}`);
+  return (data ?? []) as Category[];
+});
+
 export type CategoryWithCover = Category & {
   coverImage: string | null;
+  gender: "men" | "women";
 };
 
 /**
- * Fetches all categories (ordered by name) with one representative product
- * image each — used for the landing page category grid.
- *
- * Two queries: categories first (stable ordering), then one product image
- * per category from the most recently created active products.
+ * Fetches 2 random men + 2 random women categories, each with a cover image
+ * sourced from a product of the matching gender — used for the landing page.
  */
-export const getCategoriesWithCovers = cache(
-  async (): Promise<CategoryWithCover[]> => {
-    const supabase = await createClient();
+export const getGenderedCategoryCovers = cache(async (): Promise<{
+  women: CategoryWithCover[];
+  men: CategoryWithCover[];
+}> => {
+  const supabase = await createClient();
 
-    const [{ data: cats, error: catsError }, { data: products, error: prodsError }] =
-      await Promise.all([
-        supabase.from("categories").select("id, name, slug").order("name"),
-        supabase
-          .from("products")
-          .select("category_id, images")
-          .eq("status", "active")
-          .order("created_at", { ascending: false }),
-      ]);
+  const [{ data: cats, error: catsError }, { data: products, error: prodsError }] =
+    await Promise.all([
+      supabase.from("categories").select("id, name, slug").order("name"),
+      supabase
+        .from("products")
+        .select("category_id, images, gender")
+        .eq("status", "active")
+        .order("created_at", { ascending: false }),
+    ]);
 
-    if (catsError) throw new Error(`Failed to fetch categories: ${catsError.message}`);
-    if (prodsError) throw new Error(`Failed to fetch category covers: ${prodsError.message}`);
+  if (catsError) throw new Error(`Failed to fetch categories: ${catsError.message}`);
+  if (prodsError) throw new Error(`Failed to fetch category covers: ${prodsError.message}`);
 
-    // First product image seen per category_id
-    const coverMap = new Map<string, string>();
-    for (const p of products ?? []) {
-      if (!coverMap.has(p.category_id) && p.images?.[0]) {
-        coverMap.set(p.category_id, p.images[0] as string);
+  // First image seen per (gender, category_id).
+  // Unisex products populate both men and women slots.
+  const coverMap = new Map<string, string>();
+  for (const p of products ?? []) {
+    const slots = p.gender === "unisex" ? ["men", "women"] : [p.gender as string];
+    for (const g of slots) {
+      const key = `${g}:${p.category_id}`;
+      if (!coverMap.has(key) && p.images?.[0]) {
+        coverMap.set(key, p.images[0] as string);
       }
     }
+  }
 
-    return (cats ?? []).map((c) => ({
-      id: c.id as string,
-      name: c.name as string,
-      slug: c.slug as string,
-      coverImage: coverMap.get(c.id as string) ?? null,
-    }));
-  },
-);
+  const allCats = (cats ?? []) as Category[];
+
+  const buildList = (gender: "men" | "women"): CategoryWithCover[] =>
+    allCats
+      .map((c) => ({
+        ...c,
+        gender,
+        coverImage: coverMap.get(`${gender}:${c.id}`) ?? null,
+      }))
+      .filter((c) => c.coverImage !== null);
+
+  // Shuffle and pick 2 per gender (random selection on each request)
+  const shuffle = <T>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
+
+  return {
+    women: shuffle(buildList("women")).slice(0, 2),
+    men: shuffle(buildList("men")).slice(0, 2),
+  };
+});

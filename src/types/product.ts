@@ -1,4 +1,5 @@
 export type ProductStatus = "active" | "draft" | "archived";
+export type ProductGender = "men" | "women" | "unisex";
 
 export type Category = {
   id: string;
@@ -23,6 +24,7 @@ export type Product = {
   category_id: string;
   images: string[]; // Supabase Storage public URLs
   status: ProductStatus;
+  gender: ProductGender;
   created_at: string;
   updated_at: string;
   category?: Category;

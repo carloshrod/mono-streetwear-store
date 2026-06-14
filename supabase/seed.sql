@@ -18,46 +18,63 @@ on conflict (slug) do nothing;
 -- ── Products ────────────────────────────────────────────────
 -- Two images per product (front / alternate) drive the hover swap in ProductCard.
 -- Images use picsum.photos placeholders in a 3:4 ratio.
-with data(slug, name, description, price, cat_slug, img_seed) as (
+-- Each category has one men and one women product.
+-- Unisex products appear in both men and women filtered views.
+with data(slug, name, description, price, cat_slug, img_seed, gender) as (
   values
-    ('mono-box-tee',          'Box Logo Tee',
+    -- T-Shirts
+    ('mono-box-tee',           'Box Logo Tee',
      'Heavyweight cotton tee with a tonal box logo. Boxy fit, ribbed collar, pre-shrunk.',
-     4500,  't-shirts',   'mono-tee'),
-    ('mono-heavyweight-tee',  'Heavyweight Blank Tee',
-     '240gsm carded cotton. Dropped shoulders and a clean, minimal silhouette.',
-     3800,  't-shirts',   'mono-blank'),
-    ('mono-essential-hoodie', 'Essential Hoodie',
+     4500,  't-shirts',    'mono-tee',        'men'),
+    ('mono-cropped-tee',       'Cropped Graphic Tee',
+     'Cropped cotton tee with a subtle tonal print. Relaxed chest, fitted hem.',
+     3900,  't-shirts',    'mono-crop',       'women'),
+    ('mono-essential-tee',     'Essential Blank Tee',
+     '180gsm combed cotton. A true wardrobe blank — clean, minimal, unisex cut.',
+     2900,  't-shirts',    'mono-essential',  'unisex'),
+    -- Hoodies
+    ('mono-essential-hoodie',  'Essential Hoodie',
      'Brushed-back fleece hoodie with a double-layer hood and kangaroo pocket.',
-     9500,  'hoodies',    'mono-hoodie'),
-    ('mono-oversized-hoodie', 'Oversized Pullover Hoodie',
+     9500,  'hoodies',     'mono-hoodie',     'men'),
+    ('mono-oversized-hoodie',  'Oversized Pullover Hoodie',
      'Heavy 450gsm loopback cotton with an exaggerated oversized cut.',
-     11000, 'hoodies',    'mono-oversized'),
-    ('mono-coaches-jacket',   'Coaches Jacket',
+     11000, 'hoodies',     'mono-oversized',  'women'),
+    ('mono-zip-hoodie',        'Zip-Up Hoodie',
+     'Midweight fleece zip hoodie with a clean minimal silhouette and no logo.',
+     10500, 'hoodies',     'mono-zip',        'unisex'),
+    -- Outerwear
+    ('mono-coaches-jacket',    'Coaches Jacket',
      'Water-repellent shell with snap closure and a relaxed coach-cut fit.',
-     14500, 'outerwear',  'mono-coach'),
-    ('mono-padded-bomber',    'Padded Bomber',
+     14500, 'outerwear',   'mono-coach',      'men'),
+    ('mono-padded-bomber',     'Padded Bomber',
      'Insulated bomber with ribbed cuffs, two-way zip and matte hardware.',
-     21000, 'outerwear',  'mono-bomber'),
-    ('mono-cargo-pants',      'Cargo Pants',
+     21000, 'outerwear',   'mono-bomber',     'women'),
+    -- Bottoms
+    ('mono-cargo-pants',       'Cargo Pants',
      'Ripstop cargo with adjustable hem, utility pockets and a tapered leg.',
-     12000, 'bottoms',    'mono-cargo'),
-    ('mono-relaxed-sweatpants','Relaxed Sweatpants',
-     'Loopback cotton sweatpants with an elastic waist and tapered ankle.',
-     8500,  'bottoms',    'mono-sweat'),
-    ('mono-beanie',           'Embroidered Beanie',
+     12000, 'bottoms',     'mono-cargo',      'men'),
+    ('mono-wide-leg-trousers', 'Wide Leg Trousers',
+     'Structured wide-leg trousers in a lightweight technical fabric.',
+     9800,  'bottoms',     'mono-wide',       'women'),
+    -- Headwear
+    ('mono-beanie',            'Embroidered Beanie',
      'Fine-gauge ribbed knit beanie with a tonal embroidered logo.',
-     3200,  'headwear',   'mono-beanie'),
-    ('mono-cap',              'Structured Cap',
-     'Six-panel structured cap with a curved brim and adjustable strap.',
-     3500,  'headwear',   'mono-cap'),
-    ('mono-tote',             'Canvas Tote',
+     3200,  'headwear',    'mono-beanie',     'men'),
+    ('mono-bucket-hat',        'Washed Bucket Hat',
+     'Garment-washed cotton bucket hat with a tonal logo patch.',
+     3800,  'headwear',    'mono-bucket',     'women'),
+    ('mono-structured-cap',    'Structured Cap',
+     'Six-panel structured cap with a pre-curved brim and adjustable strap.',
+     3500,  'headwear',    'mono-cap',        'unisex'),
+    -- Accessories
+    ('mono-tote',              'Canvas Tote',
      'Heavy 16oz canvas tote with reinforced handles and an interior pocket.',
-     2800,  'accessories','mono-tote'),
-    ('mono-crossbody',        'Crossbody Bag',
+     2800,  'accessories', 'mono-tote',       'unisex'),
+    ('mono-crossbody',         'Crossbody Bag',
      'Water-resistant crossbody with an adjustable strap and magnetic flap.',
-     6500,  'accessories','mono-crossbody')
+     6500,  'accessories', 'mono-crossbody',  'women')
 )
-insert into public.products (slug, name, description, price, category_id, images, status)
+insert into public.products (slug, name, description, price, category_id, images, status, gender)
 select
   d.slug,
   d.name,
@@ -68,10 +85,11 @@ select
     'https://picsum.photos/seed/' || d.img_seed || '-a/800/1067',
     'https://picsum.photos/seed/' || d.img_seed || '-b/800/1067'
   ],
-  'active'
+  'active',
+  d.gender
 from data d
 join public.categories c on c.slug = d.cat_slug
-on conflict (slug) do nothing;
+on conflict (slug) do update set gender = excluded.gender;
 
 -- ── Variants ────────────────────────────────────────────────
 -- Apparel gets S/M/L/XL; headwear & accessories get One Size (OS).

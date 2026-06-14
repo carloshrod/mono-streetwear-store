@@ -4,11 +4,14 @@ import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { AuthModal } from "@/components/features/auth/auth-modal";
 import { AuthRedirectHandler } from "@/components/features/auth/auth-redirect-handler";
+import { getCategories } from "@/lib/services/categories.server";
 
-const StoreLayout = ({ children }: { children: React.ReactNode }) => {
+const StoreLayout = async ({ children }: { children: React.ReactNode }) => {
+  const categories = await getCategories();
+
   return (
     <>
-      <Navbar />
+      <Navbar categories={categories} />
       <main className="flex-1 min-h-dvh">{children}</main>
       <Footer />
       <AuthModal />
