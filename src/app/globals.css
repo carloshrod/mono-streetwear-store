@@ -176,6 +176,9 @@
   }
 }
 
+/* ─── Safelisted classes (dynamic strings not detected by scanner) ────────── */
+@source inline("bg-amber-50 text-amber-700 bg-blue-50 text-blue-700 bg-violet-50 text-violet-700 bg-emerald-50 text-emerald-700 bg-red-50 text-red-600");
+
 /* ─── MONO Utilities ─────────────────────────────────────────────────────── */
 @layer utilities {
   .tracking-mono {

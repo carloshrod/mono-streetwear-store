@@ -17,11 +17,11 @@ type AccountViewProps = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-muted text-muted-foreground",
-  processing: "bg-muted text-muted-foreground",
-  shipped: "bg-foreground text-background",
-  delivered: "bg-foreground text-background",
-  cancelled: "bg-destructive/10 text-destructive",
+  pending:    "bg-amber-50 text-amber-700",
+  processing: "bg-blue-50 text-blue-700",
+  shipped:    "bg-violet-50 text-violet-700",
+  delivered:  "bg-emerald-50 text-emerald-700",
+  cancelled:  "bg-red-50 text-red-600",
 };
 
 const STATUS_LABEL: Record<string, string> = {
