@@ -2,14 +2,16 @@ import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
 
 import { formatPrice } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/types/cart";
 
 type OrderSummaryProps = {
   items: CartItem[];
   total: number;
+  isSubmitting?: boolean;
 };
 
-export const OrderSummary = ({ items, total }: OrderSummaryProps) => {
+export const OrderSummary = ({ items, total, isSubmitting }: OrderSummaryProps) => {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-label text-muted-foreground">Order summary</h2>
@@ -69,6 +71,17 @@ export const OrderSummary = ({ items, total }: OrderSummaryProps) => {
           <span className="tabular-nums">{formatPrice(total)}</span>
         </div>
       </div>
+
+      {isSubmitting !== undefined && (
+        <Button
+          type="submit"
+          form="checkout-form"
+          className="w-full h-12 mt-2"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Redirecting to payment…" : "Proceed to payment"}
+        </Button>
+      )}
     </div>
   );
 };
