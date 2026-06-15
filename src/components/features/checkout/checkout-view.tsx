@@ -14,6 +14,7 @@ import { useAuthModal } from "@/store/auth-modal";
 import { createOrder } from "@/app/actions/checkout";
 import { Button } from "@/components/ui/button";
 import { OrderSummary } from "@/components/features/checkout/order-summary";
+import type { Address } from "@/types/user";
 
 const addressSchema = z.object({
   full_name: z.string().min(2, "Full name is required"),
@@ -46,14 +47,17 @@ const Field = ({
   </div>
 );
 
-export const CheckoutView = () => {
+type Props = {
+  savedAddress: Address | null;
+};
+
+export const CheckoutView = ({ savedAddress }: Props) => {
   const router = useRouter();
   const hydrated = useCartHydrated();
   const { user, loading: userLoading } = useUser();
   const openAuthModal = useAuthModal((s) => s.open);
   const items = useCartStore((s) => s.items);
   const total = useCartStore(selectTotalPrice);
-  const clearCart = useCartStore((s) => s.clearCart);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -62,7 +66,7 @@ export const CheckoutView = () => {
     formState: { errors, isSubmitting },
   } = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
-    defaultValues: { country: "US" },
+    defaultValues: savedAddress ?? { country: "US" },
   });
 
   // Redirect to cart if hydrated and empty
@@ -104,9 +108,8 @@ export const CheckoutView = () => {
         variant_id: i.variant.id,
         quantity: i.quantity,
       }));
-      const { orderId } = await createOrder(checkoutItems, data);
-      clearCart();
-      router.push(`/checkout/success?orderId=${orderId}`);
+      const { checkoutUrl } = await createOrder(checkoutItems, data);
+      window.location.href = checkoutUrl;
     } catch (err) {
       setServerError(
         err instanceof Error ? err.message : "Something went wrong",
@@ -120,7 +123,7 @@ export const CheckoutView = () => {
 
       <div className="grid lg:grid-cols-[1fr_400px] gap-12 lg:gap-20 items-start">
         {/* Shipping form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <h2 className="text-label text-muted-foreground mb-6">
               Shipping address
@@ -210,13 +213,13 @@ export const CheckoutView = () => {
           )}
 
           <Button type="submit" className="w-full h-12" disabled={isSubmitting}>
-            {isSubmitting ? "Placing order…" : "Place order"}
+            {isSubmitting ? "Redirecting to payment…" : "Proceed to payment"}
           </Button>
         </form>
 
         {/* Order summary */}
         <div className="lg:sticky lg:top-28 border border-border p-6">
-          <OrderSummary items={items} total={total} />
+          <OrderSummary items={items} total={total} isSubmitting={isSubmitting} />
         </div>
       </div>
     </div>

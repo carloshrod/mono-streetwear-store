@@ -1,58 +1,29 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { redirect } from "next/navigation";
 
-import { buttonVariants } from "@/lib/button-variants";
+import { stripe } from "@/lib/stripe";
+import { CheckoutSuccessView } from "@/components/features/checkout/checkout-success-view";
 
 export const metadata: Metadata = {
   title: "Order Confirmed — MONO",
 };
 
 type Props = {
-  searchParams: Promise<{ orderId?: string }>;
+  searchParams: Promise<{ session_id?: string }>;
 };
 
 const CheckoutSuccessPage = async ({ searchParams }: Props) => {
-  const { orderId } = await searchParams;
+  const { session_id } = await searchParams;
 
-  return (
-    <div className="max-w-lg mx-auto px-6 py-20 text-center flex flex-col items-center gap-6">
-      <CheckCircle
-        size={48}
-        strokeWidth={1}
-        className="text-foreground"
-        aria-hidden
-      />
+  if (!session_id) redirect("/");
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Order confirmed
-        </h1>
-        <p className="text-muted-foreground">
-          Thank you for your purchase. We&apos;ll send you shipping updates by
-          email.
-        </p>
-      </div>
+  const session = await stripe.checkout.sessions.retrieve(session_id);
 
-      {orderId && (
-        <p className="text-xs text-muted-foreground font-mono border border-border px-4 py-2">
-          Order #{orderId.slice(0, 8).toUpperCase()}
-        </p>
-      )}
+  if (session.payment_status !== "paid") redirect("/checkout");
 
-      <div className="flex flex-col sm:flex-row gap-3 mt-2">
-        <Link href="/products" className={buttonVariants()}>
-          Continue shopping
-        </Link>
-        <Link
-          href="/"
-          className={buttonVariants({ variant: "outline" })}
-        >
-          Back to home
-        </Link>
-      </div>
-    </div>
-  );
+  const orderId = session.metadata?.orderId ?? null;
+
+  return <CheckoutSuccessView orderId={orderId} />;
 };
 
 export default CheckoutSuccessPage;

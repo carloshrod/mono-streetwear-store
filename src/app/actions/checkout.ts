@@ -2,6 +2,7 @@
 
 import { getUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { stripe } from "@/lib/stripe";
 import type { Address } from "@/types/user";
 
 export type CheckoutItem = {
@@ -10,12 +11,15 @@ export type CheckoutItem = {
   quantity: number;
 };
 
-export type CreateOrderResult = { orderId: string };
+export type CreateOrderResult = {
+  orderId: string;
+  checkoutUrl: string;
+};
 
 /**
- * Creates an order in the database. Prices are re-fetched server-side to
- * prevent client-side manipulation — the client only sends product/variant IDs
- * and quantities.
+ * Creates an order in the database and a Stripe Checkout Session.
+ * Prices are re-fetched server-side to prevent client-side manipulation —
+ * the client only sends product/variant IDs and quantities.
  */
 export const createOrder = async (
   items: CheckoutItem[],
@@ -28,11 +32,11 @@ export const createOrder = async (
 
   const supabase = await createClient();
 
-  // Re-fetch prices to prevent client-side price manipulation
+  // Re-fetch prices and names to prevent client-side manipulation
   const productIds = [...new Set(items.map((i) => i.product_id))];
   const { data: products, error: priceError } = await supabase
     .from("products")
-    .select("id, price")
+    .select("id, price, name")
     .in("id", productIds)
     .eq("status", "active");
 
@@ -41,6 +45,7 @@ export const createOrder = async (
   }
 
   const priceMap = new Map(products.map((p) => [p.id as string, p.price as number]));
+  const nameMap = new Map(products.map((p) => [p.id as string, p.name as string]));
 
   for (const item of items) {
     if (!priceMap.has(item.product_id)) {
@@ -81,5 +86,29 @@ export const createOrder = async (
 
   if (itemsError) throw new Error("Failed to save order items");
 
-  return { orderId: order.id as string };
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: items.map((item) => ({
+      price_data: {
+        currency: "usd",
+        unit_amount: priceMap.get(item.product_id)!,
+        product_data: { name: nameMap.get(item.product_id)! },
+      },
+      quantity: item.quantity,
+    })),
+    metadata: { orderId: order.id as string },
+    payment_intent_data: { metadata: { orderId: order.id as string } },
+    customer_email: user.email ?? undefined,
+    success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/checkout`,
+  });
+
+  await supabase
+    .from("orders")
+    .update({ stripe_session_id: session.id })
+    .eq("id", order.id);
+
+  return { orderId: order.id as string, checkoutUrl: session.url! };
 };

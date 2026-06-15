@@ -26,6 +26,7 @@ export type Order = {
   shipping_address: Address;
   total_amount: number; // in cents
   stripe_payment_intent_id: string | null;
+  stripe_session_id: string | null;
   created_at: string;
   updated_at: string;
   items?: OrderItem[];
