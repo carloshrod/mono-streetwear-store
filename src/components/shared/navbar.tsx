@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ShoppingBag, User, Search, Menu, X, ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { useCartStore, selectTotalItems } from "@/store/cart";
@@ -24,13 +24,32 @@ type GenderKey = "men" | "women";
 
 const GENDER_LABELS: Record<GenderKey, string> = { men: "Men", women: "Women" };
 
+type NavState = {
+  mobileOpen: boolean;
+  mobileExpanded: GenderKey | null;
+  activeDrawer: GenderKey | null;
+  syncedPathname: string;
+};
+
+const CLOSED_NAV = {
+  mobileOpen: false,
+  mobileExpanded: null,
+  activeDrawer: null,
+} satisfies Omit<NavState, "syncedPathname">;
+
 export const Navbar = ({ categories }: NavbarProps) => {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileExpanded, setMobileExpanded] = useState<GenderKey | null>(null);
-  const [activeDrawer, setActiveDrawer] = useState<GenderKey | null>(null);
+  const router = useRouter();
+  const [nav, setNav] = useState<NavState>({ ...CLOSED_NAV, syncedPathname: pathname });
   const [searchOpen, setSearchOpen] = useState(false);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Render-phase derived state: reset nav when route changes (no effect needed)
+  if (nav.syncedPathname !== pathname) {
+    setNav({ ...CLOSED_NAV, syncedPathname: pathname });
+  }
+
+  const { mobileOpen, mobileExpanded, activeDrawer } = nav;
 
   const openCart = useCartUI((s) => s.open);
   const hydrated = useCartHydrated();
@@ -39,26 +58,21 @@ export const Navbar = ({ categories }: NavbarProps) => {
   const { user, loading: userLoading } = useUser();
   const openAuthModal = useAuthModal((s) => s.open);
 
-  useEffect(() => {
-    setActiveDrawer(null);
-    setMobileOpen(false);
-    setMobileExpanded(null);
-  }, [pathname]);
-
   const handleEnter = (gender: GenderKey) => {
     clearTimeout(leaveTimer.current);
-    setActiveDrawer(gender);
+    setNav((s) => ({ ...s, activeDrawer: gender }));
   };
 
   const handleLeave = () => {
     clearTimeout(leaveTimer.current);
-    leaveTimer.current = setTimeout(() => setActiveDrawer(null), 150);
+    leaveTimer.current = setTimeout(
+      () => setNav((s) => ({ ...s, activeDrawer: null })),
+      150,
+    );
   };
 
-  const closeMenu = () => {
-    setMobileOpen(false);
-    setMobileExpanded(null);
-  };
+  const closeMenu = () =>
+    setNav((s) => ({ ...s, mobileOpen: false, mobileExpanded: null }));
 
   const drawerOpen = activeDrawer !== null;
 
@@ -68,7 +82,11 @@ export const Navbar = ({ categories }: NavbarProps) => {
         <div className="max-w-360 mx-auto px-6 h-16 flex items-stretch justify-between gap-8">
           {/* Left: Logo + Gender nav */}
           <div className="flex items-center gap-8">
-            <Link href="/" className="shrink-0 flex items-center" aria-label="MONO — Home">
+            <Link
+              href="/"
+              className="shrink-0 flex items-center me-12"
+              aria-label="MONO — Home"
+            >
               <Image
                 src="/mono-logo.png"
                 alt="MONO"
@@ -82,7 +100,10 @@ export const Navbar = ({ categories }: NavbarProps) => {
             </Link>
 
             {/* Desktop gender nav triggers */}
-            <nav className="hidden md:flex items-stretch gap-6" aria-label="Main navigation">
+            <nav
+              className="hidden md:flex items-stretch gap-8"
+              aria-label="Main navigation"
+            >
               {(["men", "women"] as GenderKey[]).map((gender) => (
                 <div
                   key={gender}
@@ -93,7 +114,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
                   <Link
                     href={`/products?gender=${gender}`}
                     className={cn(
-                      "text-label transition-colors duration-150",
+                      "text-label transition-colors duration-150 uppercase",
                       activeDrawer === gender
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground",
@@ -111,7 +132,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
             <button
               aria-label="Search"
               onClick={() => {
-                setMobileOpen(false);
+                setNav((s) => ({ ...s, mobileOpen: false }));
                 setSearchOpen(true);
               }}
               className="flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
@@ -120,25 +141,20 @@ export const Navbar = ({ categories }: NavbarProps) => {
             </button>
 
             {!userLoading && (
-              user ? (
-                <Link
-                  href="/account"
-                  aria-label="My account"
-                  title={user.email}
-                  className="flex items-center justify-center size-11 text-foreground hover:opacity-70 transition-opacity duration-150"
-                >
-                  <User size={18} strokeWidth={1.5} />
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  aria-label="Sign in"
-                  onClick={openAuthModal}
-                  className="flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
-                >
-                  <User size={18} strokeWidth={1.5} />
-                </button>
-              )
+              <button
+                type="button"
+                aria-label={user ? "My account" : "Sign in"}
+                title={user?.email}
+                onClick={() => (user ? router.push("/account") : openAuthModal())}
+                className={cn(
+                  "flex items-center justify-center size-11 transition-colors duration-150 cursor-pointer",
+                  user
+                    ? "text-foreground hover:opacity-70"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <User size={18} strokeWidth={1.5} />
+              </button>
             )}
 
             <button
@@ -159,7 +175,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
             <button
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen((v) => !v)}
+              onClick={() => setNav((s) => ({ ...s, mobileOpen: !s.mobileOpen }))}
               className="md:hidden flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
             >
               {mobileOpen ? (
@@ -175,16 +191,24 @@ export const Navbar = ({ categories }: NavbarProps) => {
         {mobileOpen && (
           <div className="md:hidden border-t border-border bg-background">
             {(["men", "women"] as GenderKey[]).map((gender) => (
-              <div key={gender} className="border-b border-border last:border-0">
+              <div
+                key={gender}
+                className="border-b border-border last:border-0"
+              >
                 <button
                   onClick={() =>
-                    setMobileExpanded((e) => (e === gender ? null : gender))
+                    setNav((s) => ({
+                      ...s,
+                      mobileExpanded: s.mobileExpanded === gender ? null : gender,
+                    }))
                   }
                   className="flex w-full items-center justify-between px-6 py-4 text-label"
                 >
                   <span
                     className={
-                      mobileExpanded === gender ? "text-foreground" : "text-muted-foreground"
+                      mobileExpanded === gender
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                     }
                   >
                     {GENDER_LABELS[gender]}
@@ -237,7 +261,9 @@ export const Navbar = ({ categories }: NavbarProps) => {
           "hidden md:flex md:flex-col fixed left-0 top-16 z-40",
           "h-[calc(100dvh-4rem)] w-72 bg-background border-r border-border",
           "transition-transform duration-300 ease-in-out",
-          drawerOpen ? "translate-x-0" : "-translate-x-full pointer-events-none",
+          drawerOpen
+            ? "translate-x-0"
+            : "-translate-x-full pointer-events-none",
         )}
         onMouseEnter={() => activeDrawer && handleEnter(activeDrawer)}
         onMouseLeave={handleLeave}
@@ -245,16 +271,24 @@ export const Navbar = ({ categories }: NavbarProps) => {
         {(["men", "women"] as GenderKey[]).map((gender) => (
           <div
             key={gender}
-            className={cn("flex flex-col h-full", activeDrawer === gender ? "flex" : "hidden")}
+            className={cn(
+              "flex flex-col h-full",
+              activeDrawer === gender ? "flex" : "hidden",
+            )}
           >
             {/* Drawer header */}
             <div className="px-8 pt-10 pb-8 border-b border-border">
               <p className="text-label text-muted-foreground mb-2">Shop</p>
-              <p className="text-2xl font-bold tracking-tight">{GENDER_LABELS[gender]}</p>
+              <p className="text-2xl font-bold tracking-tight">
+                {GENDER_LABELS[gender]}
+              </p>
             </div>
 
             {/* Category links */}
-            <nav className="flex-1 px-8 py-6 flex flex-col gap-0.5" aria-label={`${GENDER_LABELS[gender]} categories`}>
+            <nav
+              className="flex-1 px-8 py-6 flex flex-col gap-0.5"
+              aria-label={`${GENDER_LABELS[gender]} categories`}
+            >
               {categories.map((cat) => (
                 <Link
                   key={cat.id}
@@ -287,7 +321,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
           drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onMouseEnter={handleLeave}
-        onClick={() => setActiveDrawer(null)}
+        onClick={() => setNav((s) => ({ ...s, activeDrawer: null }))}
       />
     </>
   );

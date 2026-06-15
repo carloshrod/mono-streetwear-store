@@ -6,7 +6,7 @@ import { ChangePasswordModal } from "@/components/features/account/change-passwo
 
 import { cn, formatPrice } from "@/lib/utils";
 import { buttonVariants } from "@/lib/button-variants";
-import { signOut } from "@/app/actions/auth";
+import { SignOutButton } from "@/components/features/account/sign-out-button";
 import type { Profile } from "@/types/user";
 import type { Order } from "@/types/order";
 
@@ -136,14 +136,7 @@ export const AccountView = ({ user, profile, orders }: AccountViewProps) => {
       </section>
 
       {/* ── Sign out ── */}
-      <form action={signOut}>
-        <button
-          type="submit"
-          className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}
-        >
-          Sign out
-        </button>
-      </form>
+      <SignOutButton />
     </div>
   );
 };
