@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -5,6 +6,8 @@ import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/services/products.server";
 import { ProductGallery } from "@/components/features/products/product-gallery";
 import { AddToCartForm } from "@/components/features/products/add-to-cart-form";
+import { CompleteTheLook } from "@/components/features/products/complete-the-look";
+import { ProductCardSkeleton } from "@/components/features/products/product-card-skeleton";
 import { formatPrice } from "@/lib/utils";
 
 type ProductPageProps = {
@@ -32,6 +35,17 @@ export const generateMetadata = async ({
   };
 };
 
+const CompleteTheLookSkeleton = () => (
+  <section className="mt-20 pt-16 border-t border-border">
+    <div className="h-7 w-44 bg-secondary animate-pulse mb-8" />
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <ProductCardSkeleton key={i} />
+      ))}
+    </div>
+  </section>
+);
+
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
@@ -55,12 +69,15 @@ const ProductPage = async ({ params }: ProductPageProps) => {
         </ol>
       </nav>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
-        {/* Gallery */}
-        <ProductGallery images={product.images} name={product.name} />
+      {/* Product layout — page scroll moves gallery; info stays sticky */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 md:items-start">
+        {/* Gallery — normal document flow; scrolling the page scrolls the images */}
+        <div>
+          <ProductGallery images={product.images} name={product.name} />
+        </div>
 
-        {/* Details */}
-        <div className="flex flex-col md:py-2">
+        {/* Details — sticky: stays anchored to top-16 while gallery scrolls past */}
+        <div className="flex flex-col md:sticky md:top-16 md:self-start md:max-h-[calc(100dvh-5rem)] md:overflow-y-auto md:py-2 md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
           {product.category && (
             <p className="text-label text-muted-foreground">
               {product.category.name}
@@ -89,6 +106,11 @@ const ProductPage = async ({ params }: ProductPageProps) => {
           )}
         </div>
       </div>
+
+      {/* Complete the look */}
+      <Suspense fallback={<CompleteTheLookSkeleton />}>
+        <CompleteTheLook product={product} />
+      </Suspense>
     </div>
   );
 };
