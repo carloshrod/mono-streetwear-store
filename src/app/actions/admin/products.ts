@@ -101,15 +101,66 @@ export const updateProduct = async (
     return { success: false, error: productError.message };
   }
 
-  // Re-sync variants: delete all then re-insert
-  await supabase.from("product_variants").delete().eq("product_id", id);
-
-  const { error: variantError } = await supabase
+  // Sync variants without a blanket delete: order_items.variant_id has an
+  // ON DELETE RESTRICT FK to product_variants, so wiping and re-inserting
+  // would fail (and previously failed silently) whenever a size had order
+  // history. Instead: only delete sizes that are safe to remove, and
+  // upsert the rest (insert new sizes, update stock on existing ones).
+  const { data: existing, error: existingError } = await supabase
     .from("product_variants")
-    .insert(variants.map((v) => ({ ...v, product_id: id })));
+    .select("id, size")
+    .eq("product_id", id);
 
-  if (variantError) {
-    return { success: false, error: variantError.message };
+  if (existingError) {
+    return { success: false, error: existingError.message };
+  }
+
+  const newSizes = new Set(variants.map((v) => v.size));
+  const toRemove = (existing ?? []).filter((v) => !newSizes.has(v.size));
+
+  if (toRemove.length > 0) {
+    const { data: referenced } = await supabase
+      .from("order_items")
+      .select("variant_id")
+      .in(
+        "variant_id",
+        toRemove.map((v) => v.id)
+      );
+
+    const referencedIds = new Set((referenced ?? []).map((r) => r.variant_id));
+    const blocked = toRemove.filter((v) => referencedIds.has(v.id));
+
+    if (blocked.length > 0) {
+      return {
+        success: false,
+        error: `Cannot remove size${blocked.length > 1 ? "s" : ""} ${blocked
+          .map((v) => v.size)
+          .join(", ")} — already used in existing orders.`,
+      };
+    }
+
+    const { error: deleteError } = await supabase
+      .from("product_variants")
+      .delete()
+      .in(
+        "id",
+        toRemove.map((v) => v.id)
+      );
+
+    if (deleteError) {
+      return { success: false, error: deleteError.message };
+    }
+  }
+
+  const { error: upsertError } = await supabase
+    .from("product_variants")
+    .upsert(
+      variants.map((v) => ({ ...v, product_id: id })),
+      { onConflict: "product_id,size" }
+    );
+
+  if (upsertError) {
+    return { success: false, error: upsertError.message };
   }
 
   revalidatePath("/admin/products");
