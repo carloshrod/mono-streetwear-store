@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { Navbar } from "@/components/shared/navbar";
+import { PromoBanner } from "@/components/shared/promo-banner";
 import { Footer } from "@/components/shared/footer";
 import { ScrollToTop } from "@/components/shared/scroll-to-top";
 import { AuthModal } from "@/components/features/auth/auth-modal";
@@ -12,7 +13,10 @@ const StoreLayout = async ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      <Navbar categories={categories} />
+      <div className="sticky top-0 z-50">
+        <PromoBanner />
+        <Navbar categories={categories} />
+      </div>
       <main className="flex-1 min-h-dvh">{children}</main>
       <Footer />
       <ScrollToTop />

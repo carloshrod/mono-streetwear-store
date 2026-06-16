@@ -14,7 +14,8 @@ export type OrderEmailItem = {
 
 export type OrderEmailData = {
   orderId: string;
-  totalAmount: number; // cents
+  totalAmount: number; // cents, includes shipping
+  shippingAmount: number; // cents
   items: OrderEmailItem[];
   shippingAddress: Address;
 };
@@ -37,6 +38,33 @@ const itemsRows = (items: OrderEmailItem[]) =>
     )
     .join("");
 
+const totalsTable = (order: OrderEmailData) => {
+  const subtotal = order.totalAmount - order.shippingAmount;
+
+  return `
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="padding-top:4px;color:#666;font-size:14px;">Subtotal</td>
+        <td style="padding-top:4px;text-align:right;color:#666;font-size:14px;">
+          ${formatPrice(subtotal)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:4px;color:#666;font-size:14px;">Shipping</td>
+        <td style="padding-top:4px;text-align:right;color:#666;font-size:14px;">
+          ${order.shippingAmount === 0 ? "Free" : formatPrice(order.shippingAmount)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:12px;font-weight:700;color:#111;">Total</td>
+        <td style="padding-top:12px;text-align:right;font-weight:700;color:#111;">
+          ${formatPrice(order.totalAmount)}
+        </td>
+      </tr>
+    </table>
+  `;
+};
+
 export const sendOrderConfirmationEmail = async (
   to: string,
   order: OrderEmailData
@@ -58,14 +86,7 @@ export const sendOrderConfirmationEmail = async (
         <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
           ${itemsRows(order.items)}
         </table>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr>
-            <td style="padding-top:12px;font-weight:700;color:#111;">Total</td>
-            <td style="padding-top:12px;text-align:right;font-weight:700;color:#111;">
-              ${formatPrice(order.totalAmount)}
-            </td>
-          </tr>
-        </table>
+        ${totalsTable(order)}
         <div style="margin-top:32px;padding-top:24px;border-top:1px solid #eee;">
           <p style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;margin:0 0 8px;">
             Shipping to
@@ -105,14 +126,9 @@ export const sendAdminNewOrderEmail = async (
         <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
           ${itemsRows(order.items)}
         </table>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-          <tr>
-            <td style="padding-top:12px;font-weight:700;color:#111;">Total</td>
-            <td style="padding-top:12px;text-align:right;font-weight:700;color:#111;">
-              ${formatPrice(order.totalAmount)}
-            </td>
-          </tr>
-        </table>
+        <div style="margin-bottom:24px;">
+          ${totalsTable(order)}
+        </div>
         <a href="${APP_URL}/admin/orders/${order.orderId}"
            style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;">
           View order in admin

@@ -81,7 +81,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-background border-b border-border">
+      <header className="bg-background border-b border-border">
         <div className="max-w-360 mx-auto px-6 h-16 flex items-stretch justify-between gap-8">
           {/* Left: Logo + Gender nav */}
           <div className="flex items-center gap-8">
@@ -272,8 +272,8 @@ export const Navbar = ({ categories }: NavbarProps) => {
       <div
         aria-hidden={!drawerOpen}
         className={cn(
-          "hidden md:flex md:flex-col fixed left-0 top-16 z-40",
-          "h-[calc(100dvh-4rem)] w-72 bg-background border-r border-border",
+          "hidden md:flex md:flex-col fixed left-0 top-24 z-40",
+          "h-[calc(100dvh-6rem)] w-72 bg-background border-r border-border",
           "transition-transform duration-300 ease-in-out",
           drawerOpen
             ? "translate-x-0"
@@ -330,7 +330,7 @@ export const Navbar = ({ categories }: NavbarProps) => {
       {/* Backdrop */}
       <div
         className={cn(
-          "hidden md:block fixed inset-0 top-16 z-39",
+          "hidden md:block fixed inset-0 top-24 z-39",
           "bg-foreground/10 transition-opacity duration-300",
           drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         )}

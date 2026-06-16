@@ -24,6 +24,7 @@ export type Order = {
   user_id: string;
   status: OrderStatus;
   shipping_address: Address;
+  shipping_amount: number; // in cents — flat-rate or free, included in total_amount
   total_amount: number; // in cents
   stripe_payment_intent_id: string | null;
   stripe_session_id: string | null;

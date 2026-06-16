@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutView } from "@/components/features/checkout/checkout-view";
+import { ContinueShopping } from "@/components/shared/continue-shopping";
 import type { Address } from "@/types/user";
 
 export const metadata: Metadata = {
@@ -29,7 +30,12 @@ const CheckoutPage = async () => {
     }
   }
 
-  return <CheckoutView savedAddress={savedAddress} />;
+  return (
+    <>
+      <CheckoutView savedAddress={savedAddress} />
+      <ContinueShopping />
+    </>
+  );
 };
 
 export default CheckoutPage;

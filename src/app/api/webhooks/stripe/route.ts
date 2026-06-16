@@ -43,7 +43,7 @@ export const POST = async (request: NextRequest) => {
       })
       .eq("id", orderId)
       .eq("status", "pending") // idempotency guard
-      .select("id, total_amount, shipping_address")
+      .select("id, total_amount, shipping_amount, shipping_address")
       .maybeSingle();
 
     // Only the request that actually flips pending -> processing sends
@@ -72,6 +72,7 @@ export const POST = async (request: NextRequest) => {
       const emailData = {
         orderId: updatedOrder.id as string,
         totalAmount: updatedOrder.total_amount as number,
+        shippingAmount: updatedOrder.shipping_amount as number,
         shippingAddress: updatedOrder.shipping_address,
         items: itemRows.map((item) => ({
           name: item.product?.name ?? "Product",

@@ -35,6 +35,9 @@ export const OrdersTable = ({ orders }: { orders: AdminOrder[] }) => (
                 Items
               </th>
               <th className="text-left px-4 py-3 text-[11px] font-medium text-neutral-400 uppercase tracking-wide">
+                Shipping
+              </th>
+              <th className="text-left px-4 py-3 text-[11px] font-medium text-neutral-400 uppercase tracking-wide">
                 Total
               </th>
               <th className="text-left px-4 py-3 text-[11px] font-medium text-neutral-400 uppercase tracking-wide">
@@ -68,6 +71,9 @@ export const OrdersTable = ({ orders }: { orders: AdminOrder[] }) => (
                 </td>
                 <td className="px-4 py-3 text-neutral-600">
                   {o.items?.length ?? 0}
+                </td>
+                <td className="px-4 py-3 text-neutral-600 tabular-nums">
+                  {o.shipping_amount === 0 ? "Free" : formatPrice(o.shipping_amount)}
                 </td>
                 <td className="px-4 py-3 font-semibold tabular-nums text-black">
                   {formatPrice(o.total_amount)}

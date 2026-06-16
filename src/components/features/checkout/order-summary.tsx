@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
 
 import { formatPrice } from "@/lib/utils";
+import { calculateShipping, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/types/cart";
 
@@ -12,6 +13,10 @@ type OrderSummaryProps = {
 };
 
 export const OrderSummary = ({ items, total, isSubmitting }: OrderSummaryProps) => {
+  const shipping = calculateShipping(total);
+  const grandTotal = total + shipping;
+  const remaining = FREE_SHIPPING_THRESHOLD - total;
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-label text-muted-foreground">Order summary</h2>
@@ -64,11 +69,18 @@ export const OrderSummary = ({ items, total, isSubmitting }: OrderSummaryProps) 
         </div>
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Shipping</span>
-          <span>Calculated at next step</span>
+          <span className="tabular-nums">
+            {shipping === 0 ? "Free" : formatPrice(shipping)}
+          </span>
         </div>
+        {shipping > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Add {formatPrice(remaining)} more for free shipping
+          </p>
+        )}
         <div className="flex justify-between text-base font-semibold mt-2 pt-2 border-t border-border">
           <span>Total</span>
-          <span className="tabular-nums">{formatPrice(total)}</span>
+          <span className="tabular-nums">{formatPrice(grandTotal)}</span>
         </div>
       </div>
 

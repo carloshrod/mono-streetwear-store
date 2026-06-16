@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { User as UserIcon } from "lucide-react";
+
+import { createClient } from "@/lib/supabase/client";
 
 import { useCartStore, selectTotalPrice } from "@/store/cart";
 import { useCartHydrated } from "@/hooks/use-cart-hydrated";
@@ -63,6 +65,7 @@ export const CheckoutView = ({ savedAddress }: Props) => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<AddressForm>({
     resolver: zodResolver(addressSchema),
@@ -75,6 +78,28 @@ export const CheckoutView = ({ savedAddress }: Props) => {
       router.replace("/cart");
     }
   }, [hydrated, items.length, router]);
+
+  // When the user logs in mid-session (savedAddress wasn't available at server render),
+  // fetch their last shipping address client-side and pre-fill the form.
+  const seenUserId = useRef<string | null>(savedAddress ? "__server__" : null);
+  useEffect(() => {
+    if (!user || seenUserId.current === user.id) return;
+    seenUserId.current = user.id;
+    if (savedAddress) return;
+
+    createClient()
+      .from("orders")
+      .select("shipping_address")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        if (data?.shipping_address) {
+          reset(data.shipping_address as AddressForm);
+        }
+      });
+  }, [user, savedAddress, reset]);
 
   if (!hydrated || userLoading || items.length === 0) {
     return <div className="min-h-[60vh]" />;

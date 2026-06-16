@@ -6,6 +6,8 @@
 
 /* ─── MONO Design Tokens ─────────────────────────────────────────────────── */
 @theme inline {
+  --animate-marquee: marquee 40s linear infinite;
+
   /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -59,8 +61,10 @@
 
 /* ─── Light Mode ─────────────────────────────────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);          /* #ffffff */
-  --foreground: oklch(0.09 0 0);       /* #111111 */
+  --background: oklch(1 0 0);
+  /* #ffffff */
+  --foreground: oklch(0.09 0 0);
+  /* #111111 */
 
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.09 0 0);
@@ -68,21 +72,26 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.09 0 0);
 
-  --primary: oklch(0.09 0 0);          /* near-black */
-  --primary-foreground: oklch(1 0 0);  /* white */
+  --primary: oklch(0.09 0 0);
+  /* near-black */
+  --primary-foreground: oklch(1 0 0);
+  /* white */
 
-  --secondary: oklch(0.96 0 0);        /* very light gray */
+  --secondary: oklch(0.96 0 0);
+  /* very light gray */
   --secondary-foreground: oklch(0.09 0 0);
 
   --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.50 0 0); /* #808080 */
+  --muted-foreground: oklch(0.50 0 0);
+  /* #808080 */
 
   --accent: oklch(0.96 0 0);
   --accent-foreground: oklch(0.09 0 0);
 
   --destructive: oklch(0.577 0.245 27.325);
 
-  --border: oklch(0.88 0 0);           /* light gray */
+  --border: oklch(0.88 0 0);
+  /* light gray */
   --input: oklch(0.88 0 0);
   --ring: oklch(0.09 0 0);
 
@@ -108,8 +117,10 @@
 
 /* ─── Dark Mode ──────────────────────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.09 0 0);       /* #111111 */
-  --foreground: oklch(0.96 0 0);       /* near-white */
+  --background: oklch(0.09 0 0);
+  /* #111111 */
+  --foreground: oklch(0.96 0 0);
+  /* near-white */
 
   --card: oklch(0.13 0 0);
   --card-foreground: oklch(0.96 0 0);
@@ -153,6 +164,17 @@
   --sidebar-ring: oklch(0.60 0 0);
 }
 
+/* ─── Marquee ────────────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* ─── Base Styles ────────────────────────────────────────────────────────── */
 @layer base {
   * {
@@ -170,7 +192,12 @@
     text-size-adjust: 100%;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold tracking-tight;
     letter-spacing: -0.02em;
   }
@@ -196,7 +223,7 @@
     @apply grid grid-cols-2 gap-px bg-border;
   }
 
-  .mono-grid > * {
+  .mono-grid>* {
     @apply bg-background;
   }
 }

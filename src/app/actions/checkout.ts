@@ -4,6 +4,7 @@ import { getUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
+import { calculateShipping } from "@/lib/shipping";
 import type { Address } from "@/types/user";
 
 export type CheckoutItem = {
@@ -54,10 +55,12 @@ export const createOrder = async (
     }
   }
 
-  const totalAmount = items.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + priceMap.get(item.product_id)! * item.quantity,
     0,
   );
+  const shippingAmount = calculateShipping(subtotal);
+  const totalAmount = subtotal + shippingAmount;
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -65,6 +68,7 @@ export const createOrder = async (
       user_id: user.id,
       status: "pending",
       shipping_address: shippingAddress,
+      shipping_amount: shippingAmount,
       total_amount: totalAmount,
       stripe_payment_intent_id: null,
     })
@@ -99,6 +103,19 @@ export const createOrder = async (
       },
       quantity: item.quantity,
     })),
+    shipping_options: [
+      {
+        shipping_rate_data: {
+          type: "fixed_amount",
+          fixed_amount: { amount: shippingAmount, currency: "usd" },
+          display_name: shippingAmount === 0 ? "Free Shipping" : "Standard Shipping",
+          delivery_estimate: {
+            minimum: { unit: "business_day", value: 3 },
+            maximum: { unit: "business_day", value: 7 },
+          },
+        },
+      },
+    ],
     metadata: { orderId: order.id as string },
     payment_intent_data: { metadata: { orderId: order.id as string } },
     customer_email: user.email ?? undefined,
