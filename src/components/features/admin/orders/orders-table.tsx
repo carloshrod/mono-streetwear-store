@@ -53,7 +53,7 @@ export const OrdersTable = ({ orders }: { orders: AdminOrder[] }) => (
                 </td>
                 <td className="px-4 py-3">
                   <p className="font-medium text-black leading-tight">
-                    {o.customer.full_name ?? "—"}
+                    {o.customer.full_name ?? o.shipping_address.full_name}
                   </p>
                   <p className="text-xs text-neutral-400 mt-0.5">
                     {o.customer.email ?? "Unknown email"}

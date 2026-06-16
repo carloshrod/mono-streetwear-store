@@ -2,6 +2,7 @@
 
 import { getUser } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { stripe } from "@/lib/stripe";
 import type { Address } from "@/types/user";
 
@@ -105,10 +106,19 @@ export const createOrder = async (
     cancel_url: `${appUrl}/checkout`,
   });
 
-  await supabase
+  // orders has no customer-facing UPDATE policy (by design — only admins
+  // can mutate orders via RLS), so this bookkeeping write needs the
+  // service-role client. Using the user-scoped client here silently
+  // no-ops under RLS and leaves stripe_session_id null.
+  const serviceClient = createServiceClient();
+  const { error: sessionUpdateError } = await serviceClient
     .from("orders")
     .update({ stripe_session_id: session.id })
     .eq("id", order.id);
+
+  if (sessionUpdateError) {
+    throw new Error("Failed to save checkout session");
+  }
 
   return { orderId: order.id as string, checkoutUrl: session.url! };
 };

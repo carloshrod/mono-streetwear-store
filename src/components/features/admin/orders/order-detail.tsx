@@ -83,7 +83,7 @@ export const OrderDetail = ({ order }: { order: AdminOrder }) => (
         </h2>
         <div className="text-sm space-y-1">
           <p className="font-medium text-black">
-            {order.customer.full_name ?? "—"}
+            {order.customer.full_name ?? order.shipping_address.full_name}
           </p>
           <p className="text-neutral-500">
             {order.customer.email ?? "Unknown email"}
