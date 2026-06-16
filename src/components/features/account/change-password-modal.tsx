@@ -104,19 +104,22 @@ export const ChangePasswordModal = () => {
         Set password
       </button>
 
-      <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <Dialog.Root
+        open={isOpen}
+        onOpenChange={(open) => !open && handleClose()}
+      >
         <Dialog.Portal>
           <Dialog.Backdrop
             className={cn(
-              "fixed inset-0 z-[100] bg-black/60 transition-opacity duration-200",
-              "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
+              "fixed inset-0 z-100 bg-black/60 transition-opacity duration-200",
+              "data-starting-style:opacity-0 data-ending-style:opacity-0",
             )}
           />
           <Dialog.Popup
             className={cn(
-              "fixed inset-0 z-[100] flex items-center justify-center p-4",
+              "fixed inset-0 z-100 flex items-center justify-center p-4",
               "transition-opacity duration-200",
-              "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
+              "data-starting-style:opacity-0 data-ending-style:opacity-0",
             )}
           >
             <div className="relative w-full max-w-sm bg-background p-8 shadow-xl">

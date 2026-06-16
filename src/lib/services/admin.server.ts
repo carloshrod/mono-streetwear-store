@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { PRODUCT_SELECT } from "./product-select";
 import type { Product } from "@/types/product";
 import type { Order } from "@/types/order";
+import type { UserRole, Address } from "@/types/user";
 
 export type AdminStats = {
   totalProducts: number;
@@ -93,10 +94,20 @@ export type OrderCustomer = {
 export type AdminOrder = Order & { customer: OrderCustomer };
 
 /**
+ * Email lives only in auth.users (not profiles), and is only readable via
+ * the admin API with the service-role key.
+ */
+const getEmailMap = async (
+  supabase: ReturnType<typeof createServiceClient>
+): Promise<Map<string, string | null>> => {
+  const { data: authData } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  return new Map((authData?.users ?? []).map((u) => [u.id, u.email ?? null]));
+};
+
+/**
  * profiles.id mirrors auth.users.id, but there's no FK from orders.user_id
  * to profiles, so PostgREST can't embed it automatically — resolved here
- * with a manual lookup. Email lives only in auth.users, fetched via the
- * admin API (service-role only).
+ * with a manual lookup.
  */
 const attachCustomers = async (
   supabase: ReturnType<typeof createServiceClient>,
@@ -104,15 +115,12 @@ const attachCustomers = async (
 ): Promise<AdminOrder[]> => {
   const userIds = [...new Set(orders.map((o) => o.user_id))];
 
-  const [{ data: profiles }, { data: authData }] = await Promise.all([
+  const [{ data: profiles }, emailById] = await Promise.all([
     supabase.from("profiles").select("id, full_name, phone").in("id", userIds),
-    supabase.auth.admin.listUsers({ perPage: 1000 }),
+    getEmailMap(supabase),
   ]);
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
-  const emailById = new Map(
-    (authData?.users ?? []).map((u) => [u.id, u.email ?? null])
-  );
 
   return orders.map((o) => ({
     ...o,
@@ -152,4 +160,100 @@ export const getAdminOrderById = async (id: string): Promise<AdminOrder | null> 
 
   const [order] = await attachCustomers(supabase, [data as Order]);
   return order;
+};
+
+export type AdminCustomer = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  role: UserRole;
+  created_at: string;
+  ordersCount: number;
+  totalSpent: number; // in cents, excludes cancelled orders
+};
+
+export type AdminCustomerDetail = AdminCustomer & { orders: Order[] };
+
+export const getAdminCustomers = async (): Promise<AdminCustomer[]> => {
+  const supabase = createServiceClient();
+
+  const [{ data: profiles, error }, { data: orders }, emailById] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, phone, role, created_at")
+      .eq("role", "customer")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("orders")
+      .select("user_id, total_amount, status, shipping_address")
+      .order("created_at", { ascending: false }),
+    getEmailMap(supabase),
+  ]);
+
+  if (error) throw new Error(`Failed to fetch customers: ${error.message}`);
+
+  const statsByUser = new Map<string, { count: number; total: number }>();
+  const nameByUser = new Map<string, string>();
+
+  for (const o of orders ?? []) {
+    const entry = statsByUser.get(o.user_id) ?? { count: 0, total: 0 };
+    entry.count += 1;
+    if (o.status !== "cancelled") entry.total += o.total_amount as number;
+    statsByUser.set(o.user_id, entry);
+
+    // profiles.full_name is never collected by the storefront — orders are
+    // fetched newest-first, so the first one seen per user is their most
+    // recent, and its shipping address name is the best available fallback.
+    const shippingName = (o.shipping_address as Address | null)?.full_name;
+    if (shippingName && !nameByUser.has(o.user_id)) {
+      nameByUser.set(o.user_id, shippingName);
+    }
+  }
+
+  return (profiles ?? []).map((p) => ({
+    ...p,
+    full_name: p.full_name ?? nameByUser.get(p.id) ?? null,
+    email: emailById.get(p.id) ?? null,
+    ordersCount: statsByUser.get(p.id)?.count ?? 0,
+    totalSpent: statsByUser.get(p.id)?.total ?? 0,
+  }));
+};
+
+export const getAdminCustomerById = async (
+  id: string
+): Promise<AdminCustomerDetail | null> => {
+  const supabase = createServiceClient();
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, phone, role, created_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to fetch customer: ${error.message}`);
+  if (!profile) return null;
+
+  const [{ data: orders }, emailById] = await Promise.all([
+    supabase
+      .from("orders")
+      .select(ORDER_SELECT)
+      .eq("user_id", id)
+      .order("created_at", { ascending: false }),
+    getEmailMap(supabase),
+  ]);
+
+  const ordersList = (orders ?? []) as Order[];
+  const totalSpent = ordersList
+    .filter((o) => o.status !== "cancelled")
+    .reduce((sum, o) => sum + o.total_amount, 0);
+
+  return {
+    ...profile,
+    full_name: profile.full_name ?? ordersList[0]?.shipping_address.full_name ?? null,
+    email: emailById.get(id) ?? null,
+    ordersCount: ordersList.length,
+    totalSpent,
+    orders: ordersList,
+  };
 };
