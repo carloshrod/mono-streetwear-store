@@ -40,7 +40,10 @@ const CLOSED_NAV = {
 export const Navbar = ({ categories }: NavbarProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const [nav, setNav] = useState<NavState>({ ...CLOSED_NAV, syncedPathname: pathname });
+  const [nav, setNav] = useState<NavState>({
+    ...CLOSED_NAV,
+    syncedPathname: pathname,
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const leaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -86,6 +89,12 @@ export const Navbar = ({ categories }: NavbarProps) => {
               href="/"
               className="shrink-0 flex items-center me-12"
               aria-label="MONO — Home"
+              onClick={(e) => {
+                if (pathname === "/") {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
             >
               <Image
                 src="/mono-logo.png"
@@ -145,7 +154,9 @@ export const Navbar = ({ categories }: NavbarProps) => {
                 type="button"
                 aria-label={user ? "My account" : "Sign in"}
                 title={user?.email}
-                onClick={() => (user ? router.push("/account") : openAuthModal())}
+                onClick={() =>
+                  user ? router.push("/account") : openAuthModal()
+                }
                 className={cn(
                   "flex items-center justify-center size-11 transition-colors duration-150 cursor-pointer",
                   user
@@ -175,7 +186,9 @@ export const Navbar = ({ categories }: NavbarProps) => {
             <button
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileOpen}
-              onClick={() => setNav((s) => ({ ...s, mobileOpen: !s.mobileOpen }))}
+              onClick={() =>
+                setNav((s) => ({ ...s, mobileOpen: !s.mobileOpen }))
+              }
               className="md:hidden flex items-center justify-center size-11 text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer"
             >
               {mobileOpen ? (
@@ -199,7 +212,8 @@ export const Navbar = ({ categories }: NavbarProps) => {
                   onClick={() =>
                     setNav((s) => ({
                       ...s,
-                      mobileExpanded: s.mobileExpanded === gender ? null : gender,
+                      mobileExpanded:
+                        s.mobileExpanded === gender ? null : gender,
                     }))
                   }
                   className="flex w-full items-center justify-between px-6 py-4 text-label"
