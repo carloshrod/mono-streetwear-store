@@ -27,8 +27,8 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { label: "Profile", href: "/admin/profile", icon: UserCircle },
-  { label: "Orders", href: "/admin/orders", icon: ShoppingBag, disabled: true },
   { label: "Customers", href: "/admin/customers", icon: Users, disabled: true },
   {
     label: "Settings",

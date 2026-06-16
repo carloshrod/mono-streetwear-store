@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types/order";
 
@@ -23,7 +24,11 @@ export const RecentOrders = ({ orders }: { orders: Order[] }) => (
     ) : (
       <div className="divide-y divide-neutral-100">
         {orders.map((order) => (
-          <div key={order.id} className="px-6 py-4 flex items-center gap-4">
+          <Link
+            key={order.id}
+            href={`/admin/orders/${order.id}`}
+            className="px-6 py-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors"
+          >
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-black tabular-nums">
                 #{order.id.slice(0, 8).toUpperCase()}
@@ -44,7 +49,7 @@ export const RecentOrders = ({ orders }: { orders: Order[] }) => (
             <span className="text-sm font-bold text-black tabular-nums shrink-0">
               {formatPrice(order.total_amount)}
             </span>
-          </div>
+          </Link>
         ))}
       </div>
     )}
