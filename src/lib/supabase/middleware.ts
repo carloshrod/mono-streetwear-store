@@ -30,12 +30,13 @@ export const updateSession = async (request: NextRequest) => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users away from admin-only routes
+  // Redirect unauthenticated users to the admin login page.
+  // Exclude /admin/login itself to avoid an infinite redirect loop.
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith("/admin")) {
+  if (!user && pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/";
+    loginUrl.pathname = "/admin/login";
     return NextResponse.redirect(loginUrl);
   }
 
