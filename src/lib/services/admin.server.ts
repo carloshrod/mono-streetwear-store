@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { PRODUCT_SELECT } from "./product-select";
-import type { Product } from "@/types/product";
+import type { Product, Category } from "@/types/product";
 import type { Order } from "@/types/order";
 import type { UserRole, Address } from "@/types/user";
 
@@ -256,4 +256,41 @@ export const getAdminCustomerById = async (
     totalSpent,
     orders: ordersList,
   };
+};
+
+export type AdminCategory = Category & { productCount: number };
+
+export const getAdminCategories = async (): Promise<AdminCategory[]> => {
+  const supabase = createServiceClient();
+
+  const [{ data: categories, error }, { data: products }] = await Promise.all([
+    supabase.from("categories").select("id, name, slug").order("name"),
+    supabase.from("products").select("category_id"),
+  ]);
+
+  if (error) throw new Error(`Failed to fetch categories: ${error.message}`);
+
+  const countByCategory = new Map<string, number>();
+  for (const p of products ?? []) {
+    if (!p.category_id) continue;
+    countByCategory.set(p.category_id, (countByCategory.get(p.category_id) ?? 0) + 1);
+  }
+
+  return (categories ?? []).map((c) => ({
+    ...c,
+    productCount: countByCategory.get(c.id) ?? 0,
+  }));
+};
+
+export const getAdminCategoryById = async (id: string): Promise<Category | null> => {
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to fetch category: ${error.message}`);
+  return (data as Category | null) ?? null;
 };
