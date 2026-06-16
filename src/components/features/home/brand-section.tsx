@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { Gem, Pencil, Flame } from "lucide-react";
 
@@ -42,7 +43,7 @@ export const BrandSection = () => (
       </p>
 
       {/* Three pillars */}
-      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-background/10">
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-background/10 mb-16">
         {PILLARS.map(({ icon: Icon, label, body }) => (
           <div key={label} className="py-8 md:py-0 md:px-8 first:md:pl-0 last:md:pr-0">
             <Icon
@@ -56,6 +57,14 @@ export const BrandSection = () => (
           </div>
         ))}
       </div>
+
+      <Link
+        href="/about"
+        className="inline-flex items-center gap-2 text-label text-background/50 hover:text-background transition-colors"
+      >
+        Learn more about MONO
+        <span aria-hidden>→</span>
+      </Link>
     </div>
   </section>
 );
