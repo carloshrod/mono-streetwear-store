@@ -234,7 +234,7 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const handleSignUp = async (data: PasswordSignUpForm) => {
     setServerError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
     });
@@ -242,6 +242,14 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
       setServerError(error.message);
       return;
     }
+
+    // With email confirmation disabled, signUp returns an active session
+    // immediately — sign the user in instead of asking them to check email.
+    if (signUpData.session) {
+      handleSuccess();
+      return;
+    }
+
     setSignupDone(true);
   };
 
