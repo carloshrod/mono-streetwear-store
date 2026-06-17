@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Minimize2, Gem, Target } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { getFeaturedProducts } from "@/lib/services/products.server";
 import { buttonVariants } from "@/lib/button-variants";
+import { pickRandom } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "About — MONO",
@@ -37,11 +37,20 @@ const VALUES: Value[] = [
 ];
 
 const AboutPage = async () => {
-  const products = await getFeaturedProducts(6);
-
-  const heroImage = products[0]?.images[0] ?? null;
-  const storyImage = products[1]?.images[0] ?? null;
-  const gridImages = products.slice(2, 6).map((p) => p.images[0] ?? null);
+  const heroImages = [
+    "https://images.pexels.com/photos/5560317/pexels-photo-5560317.jpeg",
+    "https://images.pexels.com/photos/5560187/pexels-photo-5560187.jpeg",
+    "https://images.pexels.com/photos/5560301/pexels-photo-5560301.jpeg",
+  ];
+  const heroImage = pickRandom(heroImages);
+  const storyImage =
+    "https://images.unsplash.com/photo-1691256676359-20e5c6d4bc92?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+  const gridImages = [
+    "https://images.unsplash.com/photo-1773236237623-ce96f0d0c574?q=80&w=715&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.unsplash.com/photo-1579142810118-f5173816144c?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "https://images.pexels.com/photos/28484977/pexels-photo-28484977.jpeg",
+    "https://images.unsplash.com/photo-1603319444471-4c4abd88bdcc?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  ];
 
   return (
     <>

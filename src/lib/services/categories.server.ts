@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
+import { categoryCovers } from "@/lib/config/category-covers";
 import type { Category } from "@/types/product";
 
 export const getCategories = cache(async (): Promise<Category[]> => {
@@ -21,7 +22,8 @@ export type CategoryWithCover = Category & {
 
 /**
  * Fetches 2 random men + 2 random women categories, each with a cover image
- * sourced from a product of the matching gender — used for the landing page.
+ * picked at random from the static config in `lib/config/category-covers.ts`
+ * — used for the landing page.
  */
 export const getGenderedCategoryCovers = cache(async (): Promise<{
   women: CategoryWithCover[];
@@ -29,40 +31,24 @@ export const getGenderedCategoryCovers = cache(async (): Promise<{
 }> => {
   const supabase = await createClient();
 
-  const [{ data: cats, error: catsError }, { data: products, error: prodsError }] =
-    await Promise.all([
-      supabase.from("categories").select("id, name, slug").order("name"),
-      supabase
-        .from("products")
-        .select("category_id, images, gender")
-        .eq("status", "active")
-        .order("created_at", { ascending: false }),
-    ]);
+  const { data: cats, error: catsError } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .order("name");
 
   if (catsError) throw new Error(`Failed to fetch categories: ${catsError.message}`);
-  if (prodsError) throw new Error(`Failed to fetch category covers: ${prodsError.message}`);
-
-  // First image seen per (gender, category_id).
-  // Unisex products populate both men and women slots.
-  const coverMap = new Map<string, string>();
-  for (const p of products ?? []) {
-    const slots = p.gender === "unisex" ? ["men", "women"] : [p.gender as string];
-    for (const g of slots) {
-      const key = `${g}:${p.category_id}`;
-      if (!coverMap.has(key) && p.images?.[0]) {
-        coverMap.set(key, p.images[0] as string);
-      }
-    }
-  }
 
   const allCats = (cats ?? []) as Category[];
+
+  const pickRandom = (urls?: string[]): string | null =>
+    urls && urls.length > 0 ? urls[Math.floor(Math.random() * urls.length)] : null;
 
   const buildList = (gender: "men" | "women"): CategoryWithCover[] =>
     allCats
       .map((c) => ({
         ...c,
         gender,
-        coverImage: coverMap.get(`${gender}:${c.id}`) ?? null,
+        coverImage: pickRandom(categoryCovers[c.slug]?.[gender]),
       }))
       .filter((c) => c.coverImage !== null);
 
