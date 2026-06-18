@@ -1,7 +1,14 @@
 -- ============================================================
 -- MONO — reference schema
--- Run in Supabase SQL Editor or via: supabase db push
+-- Run in the Supabase SQL Editor (or via: supabase db push).
+-- See README.md in this folder for the full setup order.
 -- ============================================================
+
+-- ── Enums ───────────────────────────────────────────────────
+create type user_role      as enum ('customer', 'admin');
+create type product_status as enum ('active', 'draft', 'archived');
+create type product_gender as enum ('men', 'women', 'unisex');
+create type order_status   as enum ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
 
 -- ── Profiles ────────────────────────────────────────────────
 -- Extends auth.users. Created automatically on sign-up (see trigger below).
@@ -10,8 +17,7 @@ create table public.profiles (
   full_name   text,
   avatar_url  text,
   phone       text,
-  role        text        not null default 'customer'
-                          check (role in ('customer', 'admin')),
+  role        user_role   not null default 'customer',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -26,19 +32,17 @@ create table public.categories (
 
 -- ── Products ────────────────────────────────────────────────
 create table public.products (
-  id           uuid        primary key default gen_random_uuid(),
-  slug         text        not null unique,
-  name         text        not null,
-  description  text        not null default '',
-  price        integer     not null check (price >= 0),    -- in cents
-  category_id  uuid        references public.categories(id) on delete set null,
-  images       text[]      not null default '{}',          -- Supabase Storage URLs
-  status       text        not null default 'draft'
-                           check (status in ('active', 'draft', 'archived')),
-  gender       text        not null default 'men'
-                           check (gender in ('men', 'women', 'unisex')),
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
+  id           uuid           primary key default gen_random_uuid(),
+  slug         text           not null unique,
+  name         text           not null,
+  description  text           not null default '',
+  price        integer        not null check (price >= 0),    -- in cents
+  category_id  uuid           references public.categories(id) on delete set null,
+  images       text[]         not null default '{}',          -- Supabase Storage URLs
+  status       product_status not null default 'draft',
+  gender       product_gender not null default 'men',
+  created_at   timestamptz    not null default now(),
+  updated_at   timestamptz    not null default now()
 );
 
 -- ── Product variants (size × stock per product) ─────────────
@@ -53,16 +57,17 @@ create table public.product_variants (
 
 -- ── Orders ──────────────────────────────────────────────────
 create table public.orders (
-  id                        uuid        primary key default gen_random_uuid(),
-  user_id                   uuid        not null references auth.users(id) on delete restrict,
-  status                    text        not null default 'pending'
-                                        check (status in ('pending','processing','shipped','delivered','cancelled')),
-  shipping_address          jsonb       not null,           -- type: Address
-  total_amount              integer     not null check (total_amount >= 0), -- in cents
-  stripe_payment_intent_id  text        unique,
+  id                        uuid          primary key default gen_random_uuid(),
+  user_id                   uuid          not null references auth.users(id) on delete restrict,
+  status                    order_status  not null default 'pending',
+  shipping_address          jsonb         not null,           -- type: Address
+  shipping_amount           integer       not null default 0 check (shipping_amount >= 0),
+  total_amount              integer       not null check (total_amount >= 0), -- in cents
+  stripe_payment_intent_id  text          unique,
+  stripe_session_id         text          unique,
   stock_decremented_at      timestamptz,
-  created_at                timestamptz not null default now(),
-  updated_at                timestamptz not null default now()
+  created_at                timestamptz   not null default now(),
+  updated_at                timestamptz   not null default now()
 );
 
 -- ── Order items ─────────────────────────────────────────────
@@ -80,6 +85,7 @@ create table public.order_items (
 create index on public.products(slug);
 create index on public.products(category_id);
 create index on public.products(status);
+create index on public.products(gender);
 create index on public.product_variants(product_id);
 create index on public.orders(user_id);
 create index on public.orders(status);
@@ -108,7 +114,7 @@ begin
   insert into public.profiles (id) values (new.id);
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -210,3 +216,13 @@ create policy "Admins can manage all order items"
   on public.order_items for all using (
     exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
   );
+
+-- ── Storage ─────────────────────────────────────────────────
+-- Product images bucket — public so images are servable via their public
+-- URL directly (no signed URLs needed on the storefront). Uploads only
+-- happen server-side through the service-role client (see
+-- uploadProductImage action), which bypasses storage RLS — no
+-- additional INSERT/UPDATE/DELETE policies are required.
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
