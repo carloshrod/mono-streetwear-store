@@ -13,7 +13,10 @@ type ProductCardProps = {
   priority?: boolean;
 };
 
-export const ProductCard = ({ product, priority = false }: ProductCardProps) => {
+export const ProductCard = ({
+  product,
+  priority = false,
+}: ProductCardProps) => {
   const image = product.images[0] ?? null;
   const secondImage = product.images[1] ?? null;
   const isNew = product.isNew ?? false;
@@ -32,7 +35,7 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
               sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
               className={cn(
                 "object-cover transition-opacity duration-500",
-                secondImage && "group-hover:opacity-0"
+                secondImage && "group-hover:opacity-0",
               )}
               priority={priority}
             />
@@ -80,11 +83,12 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
             keyboard focus; always shown on touch devices (no hover). */}
         <div
           className={cn(
+            "hidden lg:block",
             "absolute inset-x-0 bottom-0 z-20 p-3 transition-all duration-200",
             "opacity-0 translate-y-2",
             "group-hover:opacity-100 group-hover:translate-y-0",
             "focus-within:opacity-100 focus-within:translate-y-0",
-            "[@media(hover:none)]:opacity-100 [@media(hover:none)]:translate-y-0"
+            "[@media(hover:none)]:opacity-100 [@media(hover:none)]:translate-y-0",
           )}
         >
           <ProductCardQuickAdd product={product} />
@@ -94,7 +98,9 @@ export const ProductCard = ({ product, priority = false }: ProductCardProps) => 
       {/* Info */}
       <div className="flex flex-col gap-1 pt-3">
         {product.category && (
-          <p className="text-label text-muted-foreground">{product.category.name}</p>
+          <p className="text-label text-muted-foreground">
+            {product.category.name}
+          </p>
         )}
 
         <Link
