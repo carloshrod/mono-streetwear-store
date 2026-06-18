@@ -35,7 +35,6 @@ Preferred additions:
 
 - TanStack Query (data fetching)
 - React Hook Form + Zod (forms & validation)
-- shadcn/ui (UI components)
 - lucide-react (icons)
 
 ---
