@@ -10,7 +10,7 @@ Premium streetwear ecommerce built with Next.js (App Router), TypeScript, Tailwi
 - **Supabase** — Postgres database, auth, and storage
 - **Stripe** — Checkout + payment webhook
 - **Resend** — order confirmation / admin notification emails
-- **TanStack Query**, **React Hook Form + Zod**, **shadcn/ui**
+- **TanStack Query**, **React Hook Form + Zod**
 
 ## Getting started
 
