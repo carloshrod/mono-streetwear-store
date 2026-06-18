@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MONO
 
-## Getting Started
+Premium streetwear ecommerce built with Next.js (App Router), TypeScript, Tailwind CSS v4, Zustand, and Supabase.
 
-First, run the development server:
+## Stack
+
+- **Next.js** (App Router) + TypeScript
+- **Tailwind CSS v4** for styling
+- **Zustand** for client state (cart)
+- **Supabase** — Postgres database, auth, and storage
+- **Stripe** — Checkout + payment webhook
+- **Resend** — order confirmation / admin notification emails
+- **TanStack Query**, **React Hook Form + Zod**, **shadcn/ui**
+
+## Getting started
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Create a Supabase project
+
+Create a project at [supabase.com](https://supabase.com), then set up the database — see [Database setup](#database-setup) below.
+
+### 3. Configure environment variables
+
+```bash
+cp .env.local.example .env.local
+```
+
+Fill in the Supabase, Stripe, and Resend values — see the comments in `.env.local.example` for where to find each one.
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The admin panel is at `/admin/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To receive Stripe webhook events locally (required for orders to move past `pending` and for stock to decrement), run the Stripe CLI alongside the dev server:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
 
-## Learn More
+## Database setup
 
-To learn more about Next.js, take a look at the following resources:
+All schema, seed, and setup SQL lives in [`supabase/`](supabase/). Run these in the **Supabase SQL Editor**, in order, on a fresh project:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Order | File | What it does |
+| --- | --- | --- |
+| 1 | [`schema.sql`](supabase/schema.sql) | Full schema: enums, tables, indexes, triggers, the `decrement_order_stock` function, RLS policies, and the `product-images` storage bucket. Safe to run once on a fresh project. |
+| 2 | [`seed.sql`](supabase/seed.sql) | Demo categories, products, and variants with randomized stock. Idempotent — safe to re-run. |
+| 3 | [`create_admin.sql`](supabase/create_admin.sql) | Promotes a user to `admin`. **Edit the `admin_email` / `admin_password` variables at the top of the file before running.** Idempotent — safe to re-run (e.g. to reset the password). |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Each file is also idempotent-safe to re-run on its own (`create table` in `schema.sql` is the one exception — it expects an empty project), so re-running 2 and 3 after schema changes won't duplicate data.
 
-## Deploy on Vercel
+## Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run dev      # Start dev server at http://localhost:3000
+npm run build    # Production build
+npm run start    # Run production build
+npm run lint     # ESLint (Next.js core-web-vitals + TypeScript rules)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+There is no test suite configured yet.
+
+## Project structure
+
+```
+/app          → routes (store, product, cart, checkout, admin)
+/components
+  /ui         → generic components
+  /shared     → reusable pieces
+  /features   → domain-specific components
+/lib
+  /supabase   → client setup
+  /services   → business logic
+  /utils
+/store        → Zustand stores
+/hooks        → custom hooks
+/types        → global types
+```
