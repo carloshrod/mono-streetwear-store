@@ -47,8 +47,8 @@ export const POST = async (request: NextRequest) => {
       .maybeSingle();
 
     // Only the request that actually flips pending -> processing sends
-    // notifications, so Stripe's automatic webhook retries (e.g. if our
-    // endpoint times out) never double-send the confirmation emails.
+    // notifications, so Stripe's automatic webhook retries never
+    // double-send the confirmation emails.
     if (updatedOrder) {
       const customerEmail =
         session.customer_details?.email ?? session.customer_email ?? null;
@@ -96,6 +96,21 @@ export const POST = async (request: NextRequest) => {
         // make Stripe retry the whole event.
         console.error("Failed to send order notification emails", emailError);
       }
+    }
+
+    // Decrement stock on every delivery, including Stripe's automatic
+    // retries — decrement_order_stock claims the order atomically via
+    // stock_decremented_at, so repeated calls for the same order are
+    // safe. Returning a 500 here makes Stripe retry the event later if
+    // this fails (e.g. a transient DB error), recovering automatically
+    // instead of leaving stock permanently un-decremented.
+    const { error: stockError } = await supabase.rpc("decrement_order_stock", {
+      p_order_id: orderId,
+    });
+
+    if (stockError) {
+      console.error("Failed to decrement stock for order", orderId, stockError);
+      return NextResponse.json({ error: "Stock decrement failed" }, { status: 500 });
     }
   }
 

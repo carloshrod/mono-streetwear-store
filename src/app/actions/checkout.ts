@@ -55,6 +55,28 @@ export const createOrder = async (
     }
   }
 
+  // Validate stock availability — this is a UX guard, not the source of
+  // truth. The real, race-condition-safe decrement happens atomically in
+  // the Stripe webhook once payment is confirmed (see decrement_order_stock).
+  const variantIds = [...new Set(items.map((i) => i.variant_id))];
+  const { data: variants, error: variantError } = await supabase
+    .from("product_variants")
+    .select("id, stock")
+    .in("id", variantIds);
+
+  if (variantError || !variants?.length) {
+    throw new Error("Failed to validate product availability");
+  }
+
+  const stockMap = new Map(variants.map((v) => [v.id as string, v.stock as number]));
+
+  for (const item of items) {
+    const availableStock = stockMap.get(item.variant_id);
+    if (availableStock === undefined || availableStock < item.quantity) {
+      throw new Error("One or more items are out of stock");
+    }
+  }
+
   const subtotal = items.reduce(
     (sum, item) => sum + priceMap.get(item.product_id)! * item.quantity,
     0,

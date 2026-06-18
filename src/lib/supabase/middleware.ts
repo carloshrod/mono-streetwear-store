@@ -34,7 +34,23 @@ export const updateSession = async (request: NextRequest) => {
   // Exclude /admin/login itself to avoid an infinite redirect loop.
   const { pathname } = request.nextUrl;
 
-  if (!user && pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // Server Actions (Next-Action header) and RSC client-navigation requests
+  // (RSC header) expect either a normal payload or a redirect encoded via
+  // next/navigation's redirect() — not a raw HTTP redirect. Returning one
+  // here breaks the client router ("unexpected response from the server",
+  // surfacing as a 404). AdminPanelLayout already calls requireAdmin(),
+  // which redirects correctly for these request types, so it's safe to
+  // skip this early bail-out and let that guard handle it instead.
+  const isActionOrRSCRequest =
+    request.headers.get("next-action") !== null ||
+    request.headers.get("rsc") !== null;
+
+  if (
+    !user &&
+    pathname.startsWith("/admin") &&
+    pathname !== "/admin/login" &&
+    !isActionOrRSCRequest
+  ) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     return NextResponse.redirect(loginUrl);

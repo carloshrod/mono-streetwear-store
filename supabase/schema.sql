@@ -60,6 +60,7 @@ create table public.orders (
   shipping_address          jsonb       not null,           -- type: Address
   total_amount              integer     not null check (total_amount >= 0), -- in cents
   stripe_payment_intent_id  text        unique,
+  stock_decremented_at      timestamptz,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );
@@ -112,6 +113,43 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ── Stock decrement on order fulfillment ─────────────────────
+-- Called from the Stripe webhook every time checkout.session.completed
+-- is delivered for an order — including Stripe's automatic retries,
+-- which is exactly what makes this safe to call repeatedly. The orders
+-- claim (stock_decremented_at) and the variant decrement run in the
+-- same implicit function transaction, so a concurrent or repeated call
+-- for the same order either claims the row and decrements exactly
+-- once, or finds it already claimed and no-ops. The variant update is
+-- clamped at zero so it can never violate the `stock >= 0` check
+-- constraint on product_variants.
+create or replace function decrement_order_stock(p_order_id uuid)
+returns void as $$
+declare
+  claimed int;
+begin
+  update public.orders
+  set stock_decremented_at = now()
+  where id = p_order_id
+    and stock_decremented_at is null;
+
+  get diagnostics claimed = row_count;
+
+  if claimed = 0 then
+    return;
+  end if;
+
+  update public.product_variants pv
+  set stock = greatest(pv.stock - oi.quantity, 0)
+  from public.order_items oi
+  where oi.order_id = p_order_id
+    and oi.variant_id = pv.id;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+revoke all on function decrement_order_stock(uuid) from public;
+grant execute on function decrement_order_stock(uuid) to service_role;
 
 -- ── Row Level Security ──────────────────────────────────────
 alter table public.profiles        enable row level security;
